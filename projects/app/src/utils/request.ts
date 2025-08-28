@@ -134,24 +134,42 @@ const showErrorMessage = (msg: string) => {
 // 封装请求方法
 const request = {
   // GET 请求
-  get(url: string, params?: any, config?: ConfigType): Promise<ResponseDataType> {
+  get<T = any>(
+    url: string,
+    params?: any,
+    config?: ConfigType
+  ): Promise<ResponseDataType & { data: T }> {
     return instance.get(url, { params, ...config });
   },
 
   // POST 请求
-  post(url: string, data?: any, config?: ConfigType): Promise<ResponseDataType> {
+  post<T = any>(
+    url: string,
+    data?: any,
+    config?: ConfigType
+  ): Promise<ResponseDataType & { data: T }> {
     return instance.post(url, data, config);
   },
 
   // PUT 请求
-  put(url: string, data?: any, config?: ConfigType): Promise<ResponseDataType> {
+  put<T = any>(
+    url: string,
+    data?: any,
+    config?: ConfigType
+  ): Promise<ResponseDataType & { data: T }> {
     return instance.put(url, data, config);
   },
 
   // DELETE 请求
-  delete(url: string, config?: ConfigType): Promise<ResponseDataType> {
+  delete<T = any>(url: string, config?: ConfigType): Promise<ResponseDataType & { data: T }> {
     return instance.delete(url, config);
   },
 };
+
+// 导出具名方法以便更灵活的使用
+export const GET = request.get;
+export const POST = request.post;
+export const PUT = request.put;
+export const DELETE = request.delete;
 
 export default request;
