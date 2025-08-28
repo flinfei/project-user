@@ -1,0 +1,133 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# API开发规范
+
+## 说明
+本规则适用于所有需要调用API请求的功能。API是前端与后端交互的桥梁，良好的API设计和实现对于项目的可维护性和可扩展性至关重要。
+
+## 项目结构
+- API目录位于 `projects/app/src/api/` 中，存放所有与后端请求相关的服务API
+- 类型定义目录位于 `projects/app/src/types/api/` 中，存放所有API相关的类型定义
+- 任何涉及到后端调用的代码必须写在API目录里面，不允许在组件中直接调用后端接口
+- API文件的命名方式为 `模块名称.ts`，例如 `user.ts`, `auth.ts`, `cloud.ts` 等
+
+## API类型定义规范
+- 为每个API请求参数和响应数据定义清晰的TypeScript接口
+- 请求参数类型通常命名为 `XxxParams`
+- 响应数据类型通常命名为 `XxxType` 或直接使用实体类型
+- 类型定义示例：
+
+```typescript
+// projects/app/src/types/api/app.ts
+export interface AppLabelListParams {
+  tenantId?: string;
+  type?: number;
+}
+
+export interface AppLabelType {
+  id: string;
+  name: string;
+  icon: string;
+  sort: number;
+  createTime: string;
+}
+```
+
+## API函数编写规范
+每个接口必须有注释，注释格式如下:
+```typescript
+/**
+ * 接口名称
+ * 功能描述
+ * 入参
+ * 返回参数
+ * URL地址
+ * 请求方式
+ */
+```
+
+API函数命名应遵循以下规则：
+- 获取数据：以 `get` 开头，如 `getUserInfo`
+- 创建数据：以 `create` 开头，如 `createOrder`
+- 更新数据：以 `update` 开头，如 `updateUserProfile`
+- 删除数据：以 `delete` 开头，如 `deleteComment`
+- 批量操作：添加 `Batch` 前缀或后缀，如 `batchDeleteFiles`
+
+## API实现示例
+
+### 基本API示例
+```typescript
+import { GET, POST, PUT, DELETE } from '@/utils/request';
+import { AppLabelListParams, AppLabelType } from '@/types/api/app';
+
+/**
+ * 获取应用标签列表
+ * 功能描述: 获取应用中心的所有标签数据
+ * 入参: tenantId - 租户ID, type - 标签类型
+ * 返回参数: 应用标签列表
+ * URL地址: /client/tenant/label/list
+ * 请求方式: POST
+ */
+export const getAppLabelList = (data: AppLabelListParams) =>
+  POST<AppLabelType[]>('/client/tenant/label/list', data);
+
+/**
+ * 获取应用详情
+ * 功能描述: 获取单个应用的详细信息
+ * 入参: appId - 应用ID
+ * 返回参数: 应用详情
+ * URL地址: /client/app/{appId}
+ * 请求方式: GET
+ */
+export const getAppDetail = (appId: string) =>
+  GET<AppDetailResponse>(`/client/app/${appId}`);
+```
+
+### 带配置参数的API示例
+```typescript
+/**
+ * 登出系统
+ * 功能描述: 用户退出登录
+ * 入参: 无
+ * 返回参数: 无
+ * URL地址: /client/auth/logout
+ * 请求方式: POST
+ */
+export const loginOut = () => 
+  POST('/client/auth/logout', {}, { noToast: true });
+
+/**
+ * 获取用户Token
+ * 功能描述: 通过Token登录
+ * 入参: 无
+ * 返回参数: 登录信息
+ * URL地址: /client/auth/token
+ * 请求方式: POST
+ */
+export const getTokenLogin = () => 
+  POST<LoginRes>('/client/auth/token', {}, { maxQuantity: 1 });
+```
+
+## API使用规范
+在组件中使用API时，应遵循以下规则：
+- 使用 try/catch 捕获API调用的异常，并进行适当处理
+- 对于重复使用的API调用，考虑使用React Query或自定义Hook进行封装
+- 不要在组件中直接修改API返回的数据，应该先进行深拷贝
+
+### 使用示例
+```typescript
+import { getAppLabelList } from '@/api/app';
+
+const fetchAppLabels = async () => {
+  try {
+    const labels = await getAppLabelList({ type: 1 });
+    // 处理数据...
+  } catch (error) {
+    // 错误处理...
+    console.error('获取应用标签失败', error);
+  }
+};
+```

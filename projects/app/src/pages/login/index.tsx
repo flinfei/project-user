@@ -23,14 +23,14 @@ const Login: React.FC = () => {
 
       if (response.success) {
         // 保存token和用户信息
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo));
+        localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('userInfo', JSON.stringify(response.data.user));
 
         message.success('登录成功');
 
         // 跳转到首页
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/');
         }, 500);
       }
     } catch (error) {

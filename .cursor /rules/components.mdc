@@ -1,0 +1,695 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 请求用 import { useQuery } from '@tanstack/react-query';
+ 例子
+  useQuery(
+    [router.pathname, code, orgCode],
+    async () => {
+      return initUserInfo();
+    },
+    {
+      enabled: !unauth && !userInfo,
+      onSuccess(res: LoginRes | UserInfoType) {},
+      onError() {
+        if (!code || !orgCode) {
+          // 其他第三方登录需要code和orgCode
+          router.replace(
+            `/login?lastRoute=${encodeURIComponent(location.pathname + location.search)}`
+          );
+          Toast.warning('请先登录');
+        }
+      }
+    }
+  );
+
+# 弹窗使用projects/app/src/hooks/useOverlayManager.tsx的hook打开，以下是使用例子
+
+
+  const { openOverlay } = useOverlayManager();
+    // 打开滑动验证码弹窗
+    openOverlay({
+      Overlay: SliderCaptchaModal,
+      props: {
+        mobile: phoneNumber,
+        onClose: () => {
+          setRequesting(false);
+        },
+        requesting,
+        setRequesting,
+        startCountdown: () => {
+          setIsCodeSent(true);
+          setCountdown(60); // 设置倒计时为 60 秒
+        }
+      }
+    });
+
+# 弹窗与表单的编写标准例子 
+import React, { useState, useEffect } from 'react';
+import { Form, Input, Button, message } from 'antd';
+import { Box, ModalBody } from '@chakra-ui/react';
+import MyModal from '@/components/MyModal';
+import { getClientUserSmsCode, setClientAuthResetPwd } from '@/api/user';
+import styles from '@/pages/index.module.scss';
+import { vwDims } from '@/utils/chakra';
+import { Toast } from '@/utils/ui/toast';
+import SliderCaptchaModal from './SliderCaptchaModal';
+import { useOverlayManager } from '@/hooks/useOverlayManager';
+import SvgIcon from '@/components/SvgIcon';
+
+const ForgotPassword: React.FC = () => {
+  const [form] = Form.useForm();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [isCodeSent, setIsCodeSent] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mobileValid, setMobileValid] = useState(false); // 新增：手机号验证状态
+  const { openOverlay, OverlayContainer } = useOverlayManager(); // 使用 Overlay 管理钩子
+
+  // 监听手机号变化
+  useEffect(() => {
+    const mobile = form.getFieldValue('mobile');
+    const isMobileValid = mobile && /^1[3-9]\d{9}$/.test(mobile);
+    setMobileValid(isMobileValid);
+
+    // 监听表单字段变化
+    const unsubscribe = form.getFieldInstance('mobile')?.props?.onChange?.subscribe(() => {
+      const currentMobile = form.getFieldValue('mobile');
+      const isValid = currentMobile && /^1[3-9]\d{9}$/.test(currentMobile);
+      setMobileValid(isValid);
+    });
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [form]);
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    form.resetFields();
+    setCountdown(0);
+    setIsCodeSent(false);
+    setMobileValid(false);
+  };
+
+  const onSendCode = () => {
+    form
+      .validateFields(['mobile'])
+      .then((values) => {
+        const mobile = values.mobile;
+
+        // 打开滑动验证码弹窗
+        openOverlay({
+          Overlay: SliderCaptchaModal,
+          props: {
+            mobile,
+            onClose: () => {
+              setIsSubmitting(false);
+            },
+            requesting: isSubmitting,
+            setRequesting: setIsSubmitting,
+            startCountdown: () => {
+              setIsCodeSent(true);
+              setCountdown(60);
+              Toast.success('验证码已发送');
+            }
+          }
+        });
+      })
+      .catch((error) => {
+        // 表单验证失败
+      });
+  };
+
+  // const handleCaptchaSuccess = () => {
+  //   const mobile = form.getFieldValue('mobile');
+  //   // 模拟发送验证码请求
+  //   getClientUserSmsCode(3, mobile)
+  //     .then((res) => {
+  //       setIsCodeSent(true);
+  //       setCountdown(60);
+  //       Toast.success('验证码已发送');
+  //     })
+  //     .catch((error) => {
+  //       // 处理错误
+  //     });
+  // };
+
+  const onSubmit = (values: any) => {
+    if (values.password !== values.password1) {
+      form.setFields([
+        {
+          name: 'password1',
+          errors: ['两次输入的密码不一致']
+        }
+      ]);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setClientAuthResetPwd({
+      mobile: values.mobile,
+      code: values.code,
+      password: values.password,
+      password1: values.password1
+    })
+      .then((res) => {
+        Toast.success('密码重置成功');
+        handleCloseModal();
+      })
+      .catch((error) => {
+        // 处理错误
+        Toast.error('重置密码失败，请重试');
+      })
+      .finally(() => {
+        setIsSubmitting(false); // 确保在 finally 中重置 isSubmitting
+      });
+  };
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (countdown === 0 && isCodeSent) {
+      setIsCodeSent(false);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [countdown, isCodeSent]);
+
+  // 获取验证码按钮的颜色
+  const getCodeButtonColor = () => {
+    if (countdown > 0) return '#CBB8FF';
+    return mobileValid ? '#165DFF' : '#CBB8FF';
+  };
+
+  // 获取验证码按钮是否可点击
+  const isCodeButtonClickable = () => {
+    return mobileValid && countdown === 0;
+  };
+
+  // 修改 handleKeyPress 并添加新的处理函数
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    const charCode = event.which ? event.which : event.keyCode;
+    if (charCode < 48 || charCode > 57) {
+      event.preventDefault();
+    }
+  };
+
+  // 手机号输入处理
+  const handleInput = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    input.value = input.value.replace(/\D/g, ''); // 移除所有非数字字符
+    // 触发表单值更新
+    form.setFieldsValue({ mobile: input.value });
+    // 更新手机号验证状态
+    setMobileValid(!!input.value.match(/^1[3-9]\d{9}$/));
+  };
+
+  // 验证码输入处理
+  const handleInput1 = (e: React.FormEvent<HTMLInputElement>) => {
+    const input = e.currentTarget;
+    input.value = input.value.replace(/\D/g, ''); // 移除所有非数字字符
+    // 触发表单值更新 - 修改为更新 code 字段
+    form.setFieldsValue({ code: input.value });
+  };
+
+  return (
+    <>
+      <Box
+        onClick={handleOpenModal}
+        color="#595b5f"
+        textAlign="right"
+        mt={respDims(24)}
+        cursor="pointer"
+        whiteSpace="nowrap"
+      >
+        忘记密码?
+      </Box>
+      <MyModal isOpen={isModalOpen} title="重置密码" w={respDims(480, 480)}>
+        <ModalBody style={{ marginTop: 30, paddingBottom: 0 }}>
+          <Form form={form} onFinish={onSubmit} layout="vertical" className={styles['my-form']}>
+            <Form.Item
+              name="mobile"
+              rules={[
+                { required: true, message: '请输入手机号' },
+                { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号' }
+              ]}
+            >
+              <Input
+                placeholder="请输入手机号"
+                disabled={isCodeSent}
+                size="large"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyPress={handleKeyPress}
+                onInput={handleInput}
+                maxLength={11}
+              />
+            </Form.Item>
+
+            <Form.Item name="code" rules={[{ required: true, message: '请输入验证码' }]}>
+              <Input
+                placeholder="请输入验证码"
+                size="large"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                onKeyPress={handleKeyPress}
+                onInput={handleInput1}
+                suffix={
+                  <Box
+                    cursor={isCodeButtonClickable() ? 'pointer' : 'not-allowed'}
+                    onClick={() => {
+                      if (isCodeButtonClickable()) {
+                        onSendCode();
+                      }
+                    }}
+                    color={getCodeButtonColor()}
+                    fontSize="14px"
+                  >
+                    {countdown > 0 ? `${countdown}s` : '获取验证码'}
+                  </Box>
+                }
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              rules={[
+                { required: true, message: '请输入新密码' },
+                {
+                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,16}$/,
+                  message: '密码需8至16位，包含大小写字母和数字的组合，可以输入特殊符号'
+                }
+              ]}
+            >
+              <Input.Password placeholder="请输入新密码" size="large" />
+            </Form.Item>
+
+            <Form.Item
+              name="password1"
+              rules={[
+                { required: true, message: '请再次输入新密码' },
+                {
+                  pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,16}$/,
+                  message: '密码需8至16位，包含大小写字母和数字的组合，可以输入特殊符号'
+                },
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('两次输入的密码不一致'));
+                  }
+                })
+              ]}
+            >
+              <Input.Password placeholder="请再次输入新密码" size="large" />
+            </Form.Item>
+
+            <Form.Item style={{ marginTop: 35, textAlign: 'right' }}>
+              <Button onClick={handleCloseModal} style={{ marginRight: 20 }}>
+                取消
+              </Button>
+              <Button type="primary" htmlType="submit">
+                确认修改
+              </Button>
+            </Form.Item>
+          </Form>
+        </ModalBody>
+      </MyModal>
+      <OverlayContainer></OverlayContainer>
+    </>
+  );
+};
+
+export default ForgotPassword;
+
+# 表格使用的标准例子
+import React, { memo, useState, useRef, useMemo, useEffect } from 'react';
+import PageContainer from '@/components/PageContainer';
+import { Box, Flex, Tag } from '@chakra-ui/react';
+import { WorkflowTabType, SubPageWorkflowRef } from '@/types/pages/workflow';
+import { useOverlayManager } from '@/hooks/useOverlayManager';
+import { useRouter } from 'next/router';
+import { useToast } from '@/hooks/useToast';
+import { MessageBox } from '@/utils/ui/messageBox';
+import { serviceSideProps } from '@/utils/i18n';
+import {
+  TenantWorkflowsPageRequest,
+  TenantWorkflow,
+  UpdateWorkflowStatusParams
+} from '@/types/api/tenant/workflow';
+import {
+  deleteWorkflow,
+  getWorkflowPage,
+  getPersonalWorkflowPage,
+  updateWorkflowStatus
+} from '@/api/tenant/workflow';
+import MyTable from '@/components/MyTable';
+import SearchBar from './components/SearchBar';
+import { MyTableRef } from '@/components/MyTable/types';
+import EditWorkflowModal from './components/EditWorkflowModal';
+import WorkflowModal from '@/components/WorkflowModal';
+import { Button, TableProps } from 'antd';
+import { DataSource } from '@/constants/common';
+import { WorkflowStatusEnum, WorkflowStatusMap } from '@/constants/api/workflow';
+import { useTranslation } from 'react-i18next';
+import { vwDims } from '@/utils/chakra';
+
+const tabs: WorkflowTabType[] = [
+  {
+    name: '官方工作流',
+    value: 'official'
+  },
+  {
+    name: '公共工作流',
+    value: 'public'
+  },
+  {
+    name: '个人工作流',
+    value: 'personal'
+  }
+];
+
+const WorkflowManagement = ({
+  initialTab,
+  appName,
+  tenantName,
+  userName
+}: {
+  initialTab: WorkflowTabType['value'];
+  appName: string;
+  tenantName: string;
+  userName: string;
+}) => {
+  const { t } = useTranslation();
+  const [currentTab, setCurrentTab] = useState<WorkflowTabType['value']>(initialTab);
+  const actionRef = useRef<MyTableRef<TenantWorkflowsPageRequest, TenantWorkflow>>(null);
+  const { openOverlay } = useOverlayManager();
+  const router = useRouter();
+  const { toast } = useToast();
+  const isFirstRender = useRef(true);
+
+  const onDelete = async (workflow: TenantWorkflow) => {
+    MessageBox.confirm({
+      title: '删除',
+      content: '删除该工作流后，不可恢复，确认删除？',
+      onOk: async () => {
+        deleteWorkflow({ id: workflow.id, tmbId: workflow.tmbId }).then(() => {
+          toast({
+            status: 'success',
+            title: '删除成功'
+          });
+          actionRef.current?.reload();
+        });
+      }
+    });
+  };
+
+  const onEdit = (workflow: TenantWorkflow) => {
+    openOverlay({
+      Overlay: EditWorkflowModal,
+      props: {
+        formStatus: 'edit',
+        workflowId: workflow.id,
+        name: workflow.name,
+        appId: workflow.finalAppId,
+        onClose: () => {},
+        onSuccess() {
+          actionRef.current?.reload();
+        }
+      }
+    });
+  };
+
+  const onManageWorkflow = (workflow: TenantWorkflow) => {
+    openOverlay({
+      Overlay: WorkflowModal,
+      props: {
+        isManange: true,
+        onRefresh: () => {
+          actionRef.current?.reload();
+        },
+        currentWorkflow: workflow as TenantWorkflow,
+        appId: workflow.tenantAppId,
+        onClose: () => {},
+        onSuccess: () => {}
+      }
+    });
+  };
+
+  const onUpdateStatus = async (workflow: TenantWorkflow, status: WorkflowStatusEnum) => {
+    const confirmFn = () => {
+      const requestData: UpdateWorkflowStatusParams = {
+        id: workflow.id,
+        status
+      };
+      updateWorkflowStatus(requestData).then(() => {
+        toast({
+          status: 'success',
+          title: status === WorkflowStatusEnum.Online ? '启用成功' : '禁用成功'
+        });
+        actionRef.current?.reload();
+      });
+    };
+    if (status == WorkflowStatusEnum.OffLine) {
+      MessageBox.confirm({
+        title: '禁用',
+        content: '是否禁用该工作流？',
+        onOk: async () => {
+          confirmFn();
+        }
+      });
+    } else {
+      confirmFn();
+    }
+  };
+
+  const TabRender = () => {
+    return (
+      <Flex alignItems="stretch" flexShrink="0">
+        {tabs.map((tab) => (
+          <Box
+            key={tab.value}
+            mr="32px"
+            py="10px"
+            position="relative"
+            {...(tab.value === currentTab
+              ? {
+                  color: 'primary.500',
+                  _after: {
+                    position: 'absolute',
+                    content: '""',
+                    left: '0',
+                    right: '0',
+                    bottom: '-1px',
+                    w: '100%',
+                    height: '2px',
+                    bgColor: 'primary.500'
+                  }
+                }
+              : {
+                  color: '#4E5969'
+                })}
+            fontSize="14px"
+            fontWeight="bold"
+            cursor="pointer"
+            onClick={() => setCurrentTab(tab.value)}
+          >
+            {tab.name}
+          </Box>
+        ))}
+      </Flex>
+    );
+  };
+
+  const api = useMemo(() => {
+    switch (currentTab) {
+      case 'official':
+        return getWorkflowPage;
+      case 'public':
+        return getWorkflowPage;
+      case 'personal':
+        return getPersonalWorkflowPage;
+      default:
+        return getWorkflowPage;
+    }
+  }, [currentTab]);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const query = { currentTab };
+
+    let source;
+    switch (currentTab) {
+      case 'official':
+        source = DataSource.Offical;
+        break;
+      case 'public':
+        source = DataSource.Tenant;
+        break;
+      case 'personal':
+        source = undefined;
+        break;
+      default:
+    }
+    actionRef.current?.setQuery({ ...actionRef.current.query, source });
+    router.replace({
+      pathname: router.pathname,
+      query
+    });
+  }, [currentTab]);
+
+  const columns: TableProps<TenantWorkflow>['columns'] = useMemo(() => {
+    return [
+      {
+        title: '租户名称',
+        dataIndex: 'tenantName',
+        key: 'tenantName',
+        hidden: currentTab == 'official'
+      },
+      {
+        title: '用户名',
+        dataIndex: 'userName',
+        key: 'userName',
+        hidden: currentTab !== 'personal'
+      },
+      {
+        title: '应用名称',
+        dataIndex: 'appName',
+        key: 'appName'
+      },
+      {
+        title: '工作流名称',
+        dataIndex: 'name',
+        key: 'name'
+      },
+      {
+        title: '工作环节数(个)',
+        dataIndex: 'processNum',
+        key: 'processNum'
+      },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        hidden: currentTab == 'personal',
+        render: (status: WorkflowStatusEnum) => (
+          <Flex
+            color={WorkflowStatusMap[status].color}
+            fontSize={respDims(14, 12)}
+            justifyContent="flex-start"
+            alignItems="center"
+          >
+            <Box
+              w={respDims(6, 6)}
+              h={respDims(6, 6)}
+              bg={WorkflowStatusMap[status].color}
+              borderRadius="50px"
+            ></Box>
+            <Box ml={respDims(5)}>{WorkflowStatusMap[status].label}</Box>
+          </Flex>
+        )
+      },
+      {
+        title: '更新时间',
+        dataIndex: 'updateTime',
+        key: 'updateTime'
+      },
+      {
+        title: '操作',
+        key: 'action',
+        width: 400,
+        render: (dom: React.ReactNode, record: TenantWorkflow) => (
+          <>
+            {currentTab !== 'personal' &&
+              (record.status === WorkflowStatusEnum.Online ? (
+                <Button
+                  type="link"
+                  onClick={() => onUpdateStatus(record, WorkflowStatusEnum.OffLine)}
+                >
+                  {WorkflowStatusMap[WorkflowStatusEnum.OffLine].label}
+                </Button>
+              ) : (
+                <Button
+                  type="link"
+                  onClick={() => onUpdateStatus(record, WorkflowStatusEnum.Online)}
+                >
+                  {WorkflowStatusMap[WorkflowStatusEnum.Online].label}
+                </Button>
+              ))}
+            {currentTab !== 'official' && (
+              <>
+                <Button type="link" onClick={() => onEdit(record)}>
+                  编辑
+                </Button>
+                <Button type="link" onClick={() => onManageWorkflow(record)}>
+                  管理工作环节
+                </Button>
+                <Button type="link" danger onClick={() => onDelete(record)}>
+                  删除
+                </Button>
+              </>
+            )}
+          </>
+        )
+      }
+    ];
+  }, [currentTab]);
+
+  return (
+    <PageContainer pageBgColor="rgba(255,255,255,0.6)" border="2px solid #FFFFFF">
+      <Flex w="100%" h="100%" flexDir="column">
+        <MyTable
+          columns={columns}
+          api={api}
+          rowKey="id"
+          ref={actionRef}
+          defaultQuery={{
+            appName: appName || '',
+            tenantName: tenantName || '',
+            userName: userName || '',
+            source: DataSource.Offical
+          }}
+          headerConfig={{
+            showHeader: true,
+            HeaderComponent: (props) => (
+              <Flex justifyContent="space-between" alignItems="center" w="100%">
+                <TabRender />
+                <SearchBar {...props} currentTab={currentTab} />
+              </Flex>
+            )
+          }}
+        />
+      </Flex>
+    </PageContainer>
+  );
+};
+
+export async function getServerSideProps(context: any) {
+  return {
+    props: {
+      initialTab: context.query?.currentTab || 'official',
+      appName: context.query?.appName || '',
+      tenantName: context.query?.tenantName || '',
+      userName: context.query?.userName || '',
+      ...(await serviceSideProps(context))
+    }
+  };
+}
+
+export default memo(WorkflowManagement);
+

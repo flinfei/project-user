@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 规则索引
+
+本文件是Cursor规则的索引文件，列出了所有可用的规则及其用途。
+
+## 全局规则
+- `global.mdc`: 适用于所有文件的全局规则
+
+## 项目结构规则
+- `project-structure.mdc`: 项目目录结构规范
+
+## 开发规范
+- `api.mdc`: API开发规范
+- `component.mdc`: 组件开发规范
+- `code-review.mdc`: 代码审查规范
+
+## 使用说明
+1. 全局规则会自动应用于所有文件
+2. 特定规则会根据文件类型自动应用
+3. 可以使用@规则名称来手动引用特定规则
