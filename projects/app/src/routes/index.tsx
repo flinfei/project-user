@@ -1,4 +1,9 @@
-import { DashboardOutlined, SettingOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import {
+  DashboardOutlined,
+  SettingOutlined,
+  QuestionCircleOutlined,
+  MessageOutlined,
+} from '@ant-design/icons';
 
 export interface RouteItem {
   key: string;
@@ -26,6 +31,12 @@ export const routes: RouteItem[] = [
     path: '/help',
     title: '帮助中心',
     icon: <QuestionCircleOutlined />,
+  },
+  {
+    key: 'chat',
+    path: '/chat',
+    title: '聊天测试',
+    icon: <MessageOutlined />,
   },
 ];
 

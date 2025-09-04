@@ -95,15 +95,17 @@ const Login: React.FC = () => {
         }}
       >
         <Card
-          bordered={false}
+          variant="borderless"
           style={{
             borderRadius: '12px',
             boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
             width: '100%',
             maxWidth: '420px',
           }}
-          bodyStyle={{
-            padding: '30px 35px',
+          styles={{
+            body: {
+              padding: '30px 35px',
+            },
           }}
         >
           <div

@@ -3,7 +3,6 @@ import { Card, Row, Col, Statistic, Typography } from 'antd';
 import { UserOutlined, SettingOutlined, FileOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
-import Layout from '@/components/Layout';
 
 const { Title } = Typography;
 
@@ -12,7 +11,7 @@ const Dashboard: React.FC = () => {
   const router = useRouter();
 
   return (
-    <Layout>
+    <div>
       <Title level={2}>欢迎回来，{userInfo?.nickname || userInfo?.username}！</Title>
 
       <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
@@ -69,7 +68,7 @@ const Dashboard: React.FC = () => {
           </Col>
         </Row>
       </Card>
-    </Layout>
+    </div>
   );
 };
 

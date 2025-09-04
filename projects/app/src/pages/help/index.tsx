@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Typography, Collapse } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import Layout from '@/components/Layout';
+import { Box, Text } from '@chakra-ui/react';
 
 const { Title } = Typography;
 
@@ -25,15 +25,15 @@ const Help: React.FC = () => {
   ];
 
   return (
-    <Layout>
+    <Box>
       <Title level={2}>帮助中心</Title>
 
       <Card
         title={
-          <span>
+          <Text>
             <QuestionCircleOutlined style={{ marginRight: '8px' }} />
             常见问题
-          </span>
+          </Text>
         }
         style={{ marginBottom: '16px' }}
       >
@@ -41,14 +41,14 @@ const Help: React.FC = () => {
       </Card>
 
       <Card title="联系我们">
-        <p>如果您在使用过程中遇到问题，请通过以下方式联系我们：</p>
+        <Text>如果您在使用过程中遇到问题，请通过以下方式联系我们：</Text>
         <ul>
-          <li>邮箱: support@example.com</li>
-          <li>电话: 400-123-4567</li>
-          <li>在线客服: 工作日 9:00-18:00</li>
+          <Text>邮箱: support@example.com</Text>
+          <Text>电话: 400-123-4567</Text>
+          <Text>在线客服: 工作日 9:00-18:00</Text>
         </ul>
       </Card>
-    </Layout>
+    </Box>
   );
 };
 

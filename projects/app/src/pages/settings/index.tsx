@@ -1,12 +1,11 @@
 import React from 'react';
 import { Card, Typography } from 'antd';
-import Layout from '@/components/Layout';
 
 const { Title } = Typography;
 
 const Settings: React.FC = () => {
   return (
-    <Layout>
+    <div>
       <Title level={2}>系统设置</Title>
 
       <Card title="基本设置" style={{ marginBottom: '16px' }}>
@@ -17,7 +16,7 @@ const Settings: React.FC = () => {
       <Card title="用户设置">
         <p>用户个人设置选项将在这里显示。</p>
       </Card>
-    </Layout>
+    </div>
   );
 };
 
