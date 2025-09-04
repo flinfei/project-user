@@ -1,48 +1,29 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, Row, Col, Statistic, Typography } from 'antd';
 import { UserOutlined, SettingOutlined, FileOutlined } from '@ant-design/icons';
-import { useUserStore } from '@/store/userStore';
 import { useRouter } from 'next/navigation';
+import { useUserStore } from '@/store/userStore';
+import Layout from '@/components/Layout';
 
 const { Title } = Typography;
 
 const Dashboard: React.FC = () => {
-  const { userInfo, setUserInfo } = useUserStore();
+  const { userInfo } = useUserStore();
   const router = useRouter();
 
-  useEffect(() => {
-    // 检查用户信息，如果没有则从localStorage获取
-    if (!userInfo) {
-      const storedUserInfo = localStorage.getItem('userInfo');
-      if (storedUserInfo) {
-        try {
-          const parsedUserInfo = JSON.parse(storedUserInfo);
-          setUserInfo(parsedUserInfo);
-        } catch (error) {
-          console.error('解析用户信息失败:', error);
-          // 如果解析失败，跳转到登录页
-          router.push('/login');
-        }
-      } else {
-        // 如果没有用户信息，跳转到登录页
-        router.push('/login');
-      }
-    }
-  }, [userInfo, setUserInfo, router]);
-
-  if (!userInfo) {
-    return <div>加载中...</div>;
-  }
-
   return (
-    <div style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
-      <Title level={2}>欢迎回来，{userInfo.nickname || userInfo.username}！</Title>
+    <Layout>
+      <Title level={2}>欢迎回来，{userInfo?.nickname || userInfo?.username}！</Title>
 
       <Row gutter={[16, 16]} style={{ marginTop: '24px' }}>
         <Col xs={24} sm={12} md={8}>
           <Card>
-            <Statistic title="用户信息" value={userInfo.username} prefix={<UserOutlined />} />
-            <div style={{ marginTop: '8px', color: '#666' }}>角色: {userInfo.roles}</div>
+            <Statistic
+              title="用户信息"
+              value={userInfo?.username || ''}
+              prefix={<UserOutlined />}
+            />
+            <div style={{ marginTop: '8px', color: '#666' }}>角色: {userInfo?.roles || ''}</div>
           </Card>
         </Col>
 
@@ -88,7 +69,7 @@ const Dashboard: React.FC = () => {
           </Col>
         </Row>
       </Card>
-    </div>
+    </Layout>
   );
 };
 
