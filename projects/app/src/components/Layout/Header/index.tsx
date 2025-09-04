@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Layout, Button, Breadcrumb, Dropdown, Avatar, Space } from 'antd';
+import { Box, Flex, Text } from '@chakra-ui/react';
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -24,9 +25,11 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onToggle }) => {
   const pathname = usePathname();
   const { userInfo, clearUserInfo } = useUserStore();
 
-  const breadcrumbItems = getBreadcrumbItems(pathname);
+  // 使用useMemo缓存面包屑数据
+  const breadcrumbItems = useMemo(() => getBreadcrumbItems(pathname), [pathname]);
 
-  const handleLogout = async () => {
+  // 使用useCallback优化登出函数
+  const handleLogout = useCallback(async () => {
     try {
       await clearToken();
       clearUserInfo();
@@ -44,47 +47,55 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onToggle }) => {
       localStorage.removeItem('expiresAt');
       router.push('/login');
     }
-  };
+  }, [router, clearUserInfo]);
 
-  const userMenuItems = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: '个人信息',
-      onClick: () => {
-        // 可以跳转到个人信息页面
-        console.log('查看个人信息');
+  // 使用useMemo缓存用户菜单项
+  const userMenuItems = useMemo(
+    () => [
+      {
+        key: 'profile',
+        icon: <UserOutlined />,
+        label: '个人信息',
+        onClick: () => {
+          // 可以跳转到个人信息页面
+          console.log('查看个人信息');
+        },
       },
-    },
-    {
-      type: 'divider' as const,
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: '退出登录',
-      onClick: handleLogout,
-    },
-  ];
+      {
+        type: 'divider' as const,
+      },
+      {
+        key: 'logout',
+        icon: <LogoutOutlined />,
+        label: '退出登录',
+        onClick: handleLogout,
+      },
+    ],
+    [handleLogout]
+  );
+
+  // 使用useMemo缓存Header样式
+  const headerStyle = useMemo(
+    () => ({
+      padding: '0 16px',
+      background: '#fff',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottom: '1px solid #f0f0f0',
+      position: 'fixed' as const,
+      top: 0,
+      right: 0,
+      left: collapsed ? 80 : 200,
+      zIndex: 1000,
+      transition: 'left 0.2s',
+    }),
+    [collapsed]
+  );
 
   return (
-    <AntHeader
-      style={{
-        padding: '0 16px',
-        background: '#fff',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid #f0f0f0',
-        position: 'fixed',
-        top: 0,
-        right: 0,
-        left: collapsed ? 80 : 200,
-        zIndex: 1000,
-        transition: 'left 0.2s',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center' }}>
+    <AntHeader style={headerStyle}>
+      <Flex alignItems="center">
         <Button
           type="text"
           icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -92,18 +103,19 @@ const Header: React.FC<HeaderProps> = ({ collapsed, onToggle }) => {
           style={{ marginRight: '16px' }}
         />
         <Breadcrumb items={breadcrumbItems} />
-      </div>
+      </Flex>
 
       <Space>
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
-          <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+          <Flex cursor="pointer" alignItems="center">
             <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: '8px' }} />
-            <span>{userInfo?.nickname || userInfo?.username || '用户'}</span>
-          </div>
+            <Text>{userInfo?.username || '用户'}</Text>
+          </Flex>
         </Dropdown>
       </Space>
     </AntHeader>
   );
 };
 
-export default Header;
+// 使用React.memo优化Header组件
+export default React.memo(Header);

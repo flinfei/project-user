@@ -2,7 +2,7 @@ import React from 'react';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import { ChakraProvider, createSystem, defaultConfig } from '@chakra-ui/react';
-import Layout from '@/components/Layout';
+import MainLayout from '@/components/Layout';
 import '../styles/globals.css';
 
 // 不需要布局的页面路径
@@ -20,9 +20,9 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ChakraProvider value={system}>
       {needsLayout ? (
-        <Layout>
+        <MainLayout>
           <Component {...pageProps} />
-        </Layout>
+        </MainLayout>
       ) : (
         <Component {...pageProps} />
       )}

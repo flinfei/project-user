@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Layout, Menu } from 'antd';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
@@ -10,25 +10,43 @@ interface SidebarProps {
   collapsed: boolean;
 }
 
+// 创建路由映射表，避免每次都要find（在组件外部创建，只计算一次）
+const routeMap = routes.reduce(
+  (map, route) => {
+    map[route.key] = route.path;
+    return map;
+  },
+  {} as Record<string, string>
+);
+
 const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleMenuClick = (info: { key: string }) => {
-    const route = routes.find((r) => r.key === info.key);
-    if (route) {
-      router.push(route.path);
-    }
-  };
+  // 使用useCallback优化点击处理函数
+  const handleMenuClick = useCallback(
+    (info: { key: string }) => {
+      const path = routeMap[info.key];
+      if (path) {
+        router.push(path);
+      }
+    },
+    [router]
+  );
 
-  const menuItems = routes.map((route) => ({
-    key: route.key,
-    icon: route.icon,
-    label: route.title,
-  }));
+  // 使用useMemo缓存menuItems，避免每次重新计算
+  const menuItems = useMemo(() => {
+    return routes.map((route) => ({
+      key: route.key,
+      icon: route.icon,
+      label: route.title,
+    }));
+  }, []);
 
-  // 根据当前路径确定选中的菜单项
-  const selectedKeys = routes.filter((route) => pathname === route.path).map((route) => route.key);
+  // 使用useMemo优化selectedKeys计算
+  const selectedKeys = useMemo(() => {
+    return routes.filter((route) => pathname === route.path).map((route) => route.key);
+  }, [pathname]);
 
   return (
     <Sider
@@ -70,4 +88,5 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed }) => {
   );
 };
 
-export default Sidebar;
+// 使用React.memo优化组件，避免不必要的重新渲染
+export default React.memo(Sidebar);

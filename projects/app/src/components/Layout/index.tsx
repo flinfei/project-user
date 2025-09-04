@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Layout as AntLayout } from 'antd';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Layout } from 'antd';
 import { useRouter } from 'next/navigation';
 import { useUserStore } from '@/store/userStore';
 import { isTokenValid } from '@/utils/auth';
@@ -7,11 +7,11 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Content from './Content';
 
-interface LayoutProps {
+interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const { userInfo, setUserInfo } = useUserStore();
@@ -40,35 +40,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [userInfo, setUserInfo, router]);
 
-  const handleToggle = () => {
-    setCollapsed(!collapsed);
-  };
-
-  // 如果没有用户信息，显示加载状态
-  if (!userInfo) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-        }}
-      >
-        加载中...
-      </div>
-    );
-  }
+  // 使用useCallback优化折叠处理函数
+  const handleToggle = useCallback(() => {
+    setCollapsed((prev) => !prev);
+  }, []);
 
   return (
-    <AntLayout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh' }}>
       <Sidebar collapsed={collapsed} />
-      <AntLayout>
+      <Layout>
         <Header collapsed={collapsed} onToggle={handleToggle} />
         <Content collapsed={collapsed}>{children}</Content>
-      </AntLayout>
-    </AntLayout>
+      </Layout>
+    </Layout>
   );
 };
 
-export default Layout;
+export default MainLayout;
