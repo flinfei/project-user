@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Card, message, Typography, Spin } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import request from '@/utils/request';
 import { useRouter } from 'next/navigation';
+import { useUserStore } from '@/store/userStore';
+import { isTokenValid, setToken } from '@/utils/auth';
 
 const { Title } = Typography;
 
@@ -15,22 +17,55 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const [form] = Form.useForm();
+  const { setUserInfo } = useUserStore();
+
+  // 自动登录检查
+  useEffect(() => {
+    const checkAutoLogin = () => {
+      if (isTokenValid()) {
+        const storedUserInfo = localStorage.getItem('userInfo');
+        if (storedUserInfo) {
+          try {
+            const userInfo = JSON.parse(storedUserInfo);
+            setUserInfo(userInfo);
+            router.push('/dashboard');
+          } catch (error) {
+            console.error('解析用户信息失败:', error);
+            // 清理无效数据
+            localStorage.removeItem('userInfo');
+            localStorage.removeItem('token');
+            localStorage.removeItem('loginTime');
+            localStorage.removeItem('expiresAt');
+          }
+        }
+      } else {
+        // token已过期，清理本地数据
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('token');
+        localStorage.removeItem('loginTime');
+        localStorage.removeItem('expiresAt');
+      }
+    };
+
+    checkAutoLogin();
+  }, [router, setUserInfo]);
 
   const handleLogin = async (values: LoginParams) => {
     try {
       setLoading(true);
-      const response = await request.post('/api/auth/login', values);
+      const response = await request.post('/auth/login', values);
 
       if (response.success) {
         // 保存token和用户信息
-        localStorage.setItem('token', response.data.access_token);
+        setToken(response.data.access_token, 2 * 24 * 60 * 60, false);
         localStorage.setItem('userInfo', JSON.stringify(response.data.user));
+        setUserInfo(response.data.user);
 
         message.success('登录成功');
 
-        // 跳转到首页
+        // 跳转到dashboard
         setTimeout(() => {
-          router.push('/');
+          router.push('/dashboard');
         }, 500);
       }
     } catch (error) {

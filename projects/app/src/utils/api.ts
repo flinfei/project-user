@@ -7,7 +7,7 @@ export const getListFromPage = async <QueryType extends RequestPageParams, DataT
   query?: Omit<QueryType, keyof RequestPageParams>,
   size = 100
 ) => {
-  let current = 1;
+  const current = 1;
   let total = -1;
   const list: DataType[] = [];
   const params = { ...query, current, size };

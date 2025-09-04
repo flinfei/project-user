@@ -1,31 +1,32 @@
-import { GetServerSideProps } from 'next';
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Spin } from 'antd';
+import { isTokenValid } from '@/utils/auth';
 
-// 这个组件不会被渲染，因为我们在服务器端就会执行重定向
-const Home = () => {
-  return null;
-};
+const Home: React.FC = () => {
+  const router = useRouter();
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  // 从请求中获取cookie
-  const cookies = context.req.cookies;
-  const token = cookies['token'];
+  useEffect(() => {
+    // 客户端检查token有效性
+    if (isTokenValid()) {
+      router.replace('/dashboard');
+    } else {
+      router.replace('/login');
+    }
+  }, [router]);
 
-  // 根据是否有token决定重定向到哪个页面
-  if (token) {
-    return {
-      redirect: {
-        destination: '/dashboard',
-        permanent: false,
-      },
-    };
-  } else {
-    return {
-      redirect: {
-        destination: '/login',
-        permanent: false,
-      },
-    };
-  }
+  return (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+      }}
+    >
+      <Spin size="large" tip="正在跳转..." />
+    </div>
+  );
 };
 
 export default Home;

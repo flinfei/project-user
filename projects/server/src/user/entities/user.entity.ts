@@ -9,16 +9,13 @@ import {
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import * as bcrypt from 'bcryptjs';
-import { ApiProperty } from '@nestjs/swagger';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  @ApiProperty({ description: '用户ID' })
   id: string;
 
   @Column({ unique: true })
-  @ApiProperty({ description: '用户名' })
   username: string;
 
   @Column()
@@ -26,27 +23,21 @@ export class User {
   password: string;
 
   @Column({ nullable: true })
-  @ApiProperty({ description: '昵称' })
   nickname: string;
 
   @Column({ nullable: true })
-  @ApiProperty({ description: '头像' })
   avatar: string;
 
   @Column({ default: true })
-  @ApiProperty({ description: '是否激活' })
   isActive: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: false })
-  @ApiProperty({ description: '角色', example: ['user'] })
   roles: string;
 
   @CreateDateColumn()
-  @ApiProperty({ description: '创建时间' })
   createdAt: Date;
 
   @UpdateDateColumn()
-  @ApiProperty({ description: '更新时间' })
   updatedAt: Date;
 
   @BeforeInsert()
